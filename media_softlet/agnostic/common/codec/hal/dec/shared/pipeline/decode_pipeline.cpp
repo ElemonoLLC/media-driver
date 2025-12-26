@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2023, Intel Corporation
+* Copyright (c) 2018-2025, Intel Corporation
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -182,6 +182,25 @@ MOS_STATUS DecodePipeline::Initialize(void *settings)
     DECODE_CHK_NULL(m_allocator);
 
     DECODE_CHK_STATUS(CreateStatusReport());
+
+#if (_DEBUG || _RELEASE_INTERNAL)
+    MOS_USER_FEATURE_VALUE_DATA userFeatureData;
+    MOS_ZeroMemory(&userFeatureData, sizeof(userFeatureData));
+    MOS_UserFeature_ReadValue_ID(
+        nullptr,
+        __MEDIA_USER_FEATURE_VALUE_VDBOX_CRC_OUTPUT_ENABLE_ID,
+        &userFeatureData,
+        m_osInterface->pOsContext);
+    m_crcoutputEnable = userFeatureData.i32Data ? true : false;
+
+    MOS_ZeroMemory(&userFeatureData, sizeof(userFeatureData));
+    MOS_UserFeature_ReadValue_ID(
+        nullptr,
+        __MEDIA_USER_FEATURE_VALUE_VDBOX_COMMAND_COUNTER_OVERRIDE_ID,
+        &userFeatureData,
+        m_osInterface->pOsContext);
+    m_vdboxCommandCounterOverride = userFeatureData.i32Data;
+#endif
 
     m_decodecp = Create_DecodeCpInterface(codecSettings, m_hwInterface->GetCpInterface(), m_hwInterface->GetOsInterface());
     if (m_decodecp)
@@ -550,11 +569,17 @@ MOS_STATUS DecodePipeline::DumpOutput(const DecodeStatusReportData& reportData)
         {
             DECODE_CHK_STATUS(m_debugInterface->DumpBuffer(
                 reportData.currHistogramOutBuf,
-                CodechalDbgAttr::attrSfcHistogram,
+                downSamplingFeature->IsVDAQMHistogramEnabled() ? CodechalDbgAttr::attrAqmHistogram : CodechalDbgAttr::attrSfcHistogram,
                 "_DEC",
                 HISTOGRAM_BINCOUNT * downSamplingFeature->m_histogramBinWidth));
         }
+
+        if (downSamplingFeature->IsVDAQMHistogramEnabled())
+        {
+            downSamplingFeature->DumpSfcOutputs(m_debugInterface);
+        }
     }
+
 #endif
 
     return MOS_STATUS_SUCCESS;
@@ -566,8 +591,18 @@ MOS_STATUS DecodePipeline::ReportVdboxIds(const DecodeStatusMfx& status)
 {
     DECODE_FUNC_CALL();
 
-    // report the VDBOX IDs to user feature
-    uint32_t vdboxIds = ReadUserFeature(m_userSettingPtr, "Used VDBOX ID", MediaUserSetting::Group::Sequence).Get<uint32_t>();
+    uint32_t vdboxIds = 0;
+    uint32_t reportedVdboxIds = 0;
+    // Must add MEDIA_USER_SETTING_INTERNAL_REPORT for different reading path.
+    ReadUserSettingForDebug(
+        m_userSettingPtr,
+        reportedVdboxIds,
+        "Used VDBOX ID",
+        MediaUserSetting::Group::Sequence,
+        0,
+        false,
+        MEDIA_USER_SETTING_INTERNAL_REPORT);
+    vdboxIds = reportedVdboxIds;
     for (auto i = 0; i < csInstanceIdMax; i++)
     {
         CsEngineId csEngineId;
@@ -580,7 +615,7 @@ MOS_STATUS DecodePipeline::ReportVdboxIds(const DecodeStatusMfx& status)
         }
     }
 
-    if (vdboxIds != 0)
+    if (vdboxIds != reportedVdboxIds)
     {
         WriteUserFeature(__MEDIA_USER_FEATURE_VALUE_VDBOX_ID_USED, vdboxIds, m_osInterface->pOsContext);
     }

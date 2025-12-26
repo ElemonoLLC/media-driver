@@ -18,9 +18,9 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-media_include_subdirectory(private)
 media_include_subdirectory(user_setting)
 media_include_subdirectory(share)
+media_include_subdirectory(levelzero)
 
 set(TMP_SOURCES_
     ${CMAKE_CURRENT_LIST_DIR}/mos_context_next.cpp
@@ -38,6 +38,7 @@ set(TMP_SOURCES_
     ${CMAKE_CURRENT_LIST_DIR}/memory_policy_manager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mos_oca_rtlog_mgr_base.cpp
     ${CMAKE_CURRENT_LIST_DIR}/mos_cache_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/mos_hybrid_cmd_manager.cpp
 )
 
 set(TMP_HEADERS_
@@ -60,6 +61,7 @@ set(TMP_HEADERS_
     ${CMAKE_CURRENT_LIST_DIR}/memory_policy_manager.h
     ${CMAKE_CURRENT_LIST_DIR}/mos_oca_rtlog_mgr_base.h
     ${CMAKE_CURRENT_LIST_DIR}/mos_cache_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/mos_hybrid_cmd_manager.h
 )
 
 set(TMP_MOS_HAL_SHARED_SOURCES_

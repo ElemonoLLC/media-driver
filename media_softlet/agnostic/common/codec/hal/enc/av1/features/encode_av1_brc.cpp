@@ -219,8 +219,9 @@ namespace encode
         dmem->UPD_CurWidth  = (uint16_t)m_basicFeature->m_oriFrameWidth;
         dmem->UPD_CurHeight = (uint16_t)m_basicFeature->m_oriFrameHeight;
         dmem->UPD_Asyn = 0;
-        dmem->UPD_EnableAdaptiveRounding = (m_basicFeature->m_roundingMethod == RoundingMethod::adaptiveRounding);
+        dmem->UPD_EnableAdaptiveRounding = m_basicFeature->m_roundingMethod;
         dmem->UPD_AdaptiveTUEnabled = picParams->AdaptiveTUEnabled;
+        dmem->UPD_EnableDeltaQP = picParams->PicFlags.fields.EnableDeltaQP;
 
         if (seqParams->GopRefDist == 16 && m_rcMode == RATECONTROL_CQL)
             dmem->UPD_MaxBRCLevel = 4;
@@ -342,6 +343,8 @@ namespace encode
             dmem->UPD_EnableCDEFUpdate = 0;
             dmem->UPD_EnableLFUpdate   = 0;
         }
+        dmem->UPD_QMatrixEnabled = picParams->wQMatrixFlags.fields.using_qmatrix;
+        dmem->UPD_LADsRatio      = seqParams->SeqFlags.fields.LADsRatio;
 
         return MOS_STATUS_SUCCESS;
     }
@@ -443,11 +446,15 @@ namespace encode
         return profileLevelMaxFrame;
     }
 
-    inline int32_t ComputeVDEncInitQPI(uint32_t width, uint32_t height, FRAMERATE frameRate, uint32_t targetBitRate, uint16_t gopPicSize, bool is10Bit, uint16_t n_p)
+    inline int32_t ComputeVDEncInitQPI(uint32_t width, uint32_t height, FRAMERATE frameRate, uint32_t targetBitRate, uint16_t gopPicSize, bool is10Bit, uint8_t chromaFormat, uint16_t n_p)
     {
         ENCODE_FUNC_CALL();
 
         uint32_t frameSize = ((width * height * 3) >> 1);
+        if (chromaFormat == AVP_CHROMA_FORMAT_YUV444)
+        {
+            frameSize *= 2;
+        }
         if (is10Bit)
         {
             frameSize = (frameSize * 10) >> 3;
@@ -583,6 +590,7 @@ namespace encode
                 m_basicFeature->m_av1SeqParams->TargetBitRate[0],
                 m_basicFeature->m_av1SeqParams->GopPicSize,
                 m_basicFeature->m_is10Bit,
+                m_basicFeature->m_chromaFormat,
                 dmem->INIT_GopP);
 
         qpP = qpI + 20;
@@ -603,6 +611,8 @@ namespace encode
         {
             dmem->INIT_OvershootCBR_pct = (uint16_t)(seqParams->MaxBitRatePerSlidingWindow * 100 / seqParams->TargetBitRate[0]);
         }
+        dmem->INIT_GopPicSize = seqParams->GopPicSize;
+
         return MOS_STATUS_SUCCESS;
     }
 
@@ -720,6 +730,7 @@ namespace encode
 
     MHW_SETPAR_DECL_SRC(HUC_DMEM_STATE, Av1Brc)
     {
+        ENCODE_FUNC_CALL();
         ENCODE_CHK_NULL_RETURN(params.hucDataSource);
 
         switch (params.function)
@@ -765,6 +776,7 @@ namespace encode
 
     MHW_SETPAR_DECL_SRC(HUC_VIRTUAL_ADDR_STATE, Av1Brc)
     {
+        ENCODE_FUNC_CALL();
         if (params.function == BRC_UPDATE)
         {
             const PMOS_RESOURCE brcConstDataBuffer = params.regionParams[5].presRegion;
@@ -782,6 +794,7 @@ namespace encode
 
     MHW_SETPAR_DECL_SRC(VDENC_PIPE_MODE_SELECT, Av1Brc)
     {
+        ENCODE_FUNC_CALL();
         if (m_brcEnabled)
         {
             params.frameStatisticsStreamOut = true;

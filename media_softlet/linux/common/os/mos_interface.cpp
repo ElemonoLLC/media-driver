@@ -723,6 +723,32 @@ MOS_STATUS MosInterface::AddCommand(
 }
 
 #if MOS_COMMAND_BUFFER_DUMP_SUPPORTED
+MOS_STATUS MosInterface::AddIndirectState(
+    MOS_STREAM_HANDLE streamState,
+    uint32_t          stateSize,
+    uint32_t         *pIndirectState,
+    uint32_t         *gfxAddressBottom,
+    uint32_t         *gfxAddressTop,
+    const char       *stateName)
+{
+    MOS_OS_CHK_NULL_RETURN(streamState);
+    MOS_OS_CHK_NULL_RETURN(streamState->osDeviceContext);
+
+    if (streamState->osDeviceContext->m_dumpCommandBuffer &&
+        streamState->osDeviceContext->m_dumpCommandBufferToFile)
+    {
+        INDIRECT_STATE_INFO indirectStateInfo = {};
+        indirectStateInfo.stateSize           = stateSize;
+        indirectStateInfo.indirectState       = pIndirectState;
+        indirectStateInfo.gfxAddressBottom    = gfxAddressBottom;
+        indirectStateInfo.gfxAddressTop       = gfxAddressTop;
+        indirectStateInfo.stateName           = stateName;
+        streamState->indirectStateInfo.push_back(std::move(indirectStateInfo));
+    }
+
+    return MOS_STATUS_SUCCESS;
+}
+
 MOS_STATUS MosInterface::DumpIndirectStates(MOS_STREAM_HANDLE streamState, const char *filePathPrefix, std::time_t currentTime)
 {
     MOS_OS_CHK_NULL_RETURN(streamState);
@@ -761,7 +787,10 @@ MOS_STATUS MosInterface::DumpIndirectStates(MOS_STREAM_HANDLE streamState, const
                 "%.8x ",
                 data[i]);
         }
-        fileName << filePathPrefix << "_" << std::hex << *lastElement.gfxAddressBottom << "_" << *lastElement.gfxAddressTop << "_" << lastElement.stateName << ".txt";
+        fileName << filePathPrefix << "_" << std::hex << (lastElement.gfxAddressBottom ? *lastElement.gfxAddressBottom : 0)
+                 << "_"
+                 << (lastElement.gfxAddressTop ? *lastElement.gfxAddressTop : 0)
+                 << "_" << lastElement.stateName << ".txt";
         eStatus = MosUtilities::MosAppendFileFromPtr((const char *)fileName.str().c_str(), outputBuffer, dwBytesWritten);
         if (eStatus != MOS_STATUS_SUCCESS)
         {
@@ -1990,6 +2019,8 @@ MOS_STATUS MosInterface::GetResourceInfo(
     }
     details.Format   = resource->Format;
 
+    details.MipTailStartLOD = gmmResourceInfo->GetMipTailStartLodSurfaceState();
+
     // Get planes
     MosUtilities::MosZeroMemory(reqInfo, sizeof(reqInfo));
     gmmChannel = GMM_DISPLAY_BASE;
@@ -3102,22 +3133,44 @@ MOS_STATUS MosInterface::GetVeHintParams(
     return streamState->virtualEngineInterface->GetHintParams(scalableMode, hintParams);
 }
 
-MOS_STATUS MosInterface::SetVeSubmissionType(
-    MOS_STREAM_HANDLE     streamState,
-    COMMAND_BUFFER_HANDLE cmdBuf,
-    MOS_SUBMISSION_TYPE   type)
+MOS_STATUS MosInterface::SetHybridCmdMgrToGpuContext(
+    PMOS_INTERFACE pOsInterface,
+    uint64_t       gpuCtxOnHybridCmd)
 {
-    MOS_OS_CHK_NULL_RETURN(cmdBuf);
-    MOS_OS_CHK_NULL_RETURN(streamState);
-    MOS_OS_CHK_NULL_RETURN(streamState->virtualEngineInterface);
+    return MOS_STATUS_SUCCESS;
+}
 
-    return streamState->virtualEngineInterface->SetSubmissionType(cmdBuf, type);
+MOS_STATUS MosInterface::SetHybridCmdMgrSubmitMode(
+    PMOS_INTERFACE pOsInterface,
+    uint64_t       hybridMgrSubmitMode)
+{
+    return MOS_STATUS_SUCCESS;
+}
+
+MOS_STATUS MosInterface::StartHybridCmdMgr(
+    PMOS_INTERFACE pOsInterface)
+{
+    return MOS_STATUS_SUCCESS;
+}
+
+MOS_STATUS MosInterface::StopHybridCmdMgr(
+    PMOS_INTERFACE pOsInterface)
+{
+    return MOS_STATUS_SUCCESS;
+}
+
+MOS_STATUS MosInterface::SubmitPackage(
+    PMOS_INTERFACE pOsInterface,
+    CmdPackage    &cmdPackage)
+{
+    return MOS_STATUS_SUCCESS;
 }
 
 #if _DEBUG || _RELEASE_INTERNAL
 
-uint8_t MosInterface::GetVeEngineCount(
-    MOS_STREAM_HANDLE streamState)
+    uint8_t
+    MosInterface::GetVeEngineCount(
+        MOS_STREAM_HANDLE streamState)
 {
     return streamState && streamState->virtualEngineInterface ?
         streamState->virtualEngineInterface->GetEngineCount() : 0;
@@ -4109,7 +4162,7 @@ void MosInterface::SetIsTrinityEnabled(bool bTrinity)
 {
     return;
 }
-bool MosInterface::IsGpuSyncByCmd(MOS_STREAM_HANDLE streamState)
+bool MosInterface::IsGpuSyncByCmd(MOS_STREAM_HANDLE streamState, GPU_CONTEXT_HANDLE gpuContextHandle)
 {
     return false;
 }

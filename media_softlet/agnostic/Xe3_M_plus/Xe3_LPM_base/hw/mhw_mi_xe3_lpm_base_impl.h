@@ -202,7 +202,7 @@ public:
         return false;
     }
 
-    MOS_STATUS SetWatchdogTimerThreshold(uint32_t frameWidth, uint32_t frameHeight, bool isEncoder, uint32_t codecMode) override
+    MOS_STATUS SetWatchdogTimerThreshold(uint32_t frameWidth, uint32_t frameHeight, bool isEncoder, uint32_t codecMode, bool isTee) override
     {
         MHW_FUNCTION_ENTER;
         MHW_MI_CHK_NULL(this->m_osItf);
@@ -212,7 +212,11 @@ public:
             return MOS_STATUS_SUCCESS;
         }
 
-        if (isEncoder)
+        if (isTee)
+        {
+            MediaResetParam.watchdogCountThreshold = WATCHDOG_TEE_DEFAULT_WATCHDOG_THRESHOLD_IN_MS;
+        }
+        else if(isEncoder)
         {
             if ((frameWidth * frameHeight) >= (7680 * 4320))
             {
@@ -252,6 +256,10 @@ public:
         }
 
         GetWatchdogThreshold(this->m_osItf);
+
+        // Add debug message with all input parameters and calculated threshold
+        MHW_VERBOSEMESSAGE("MediaReset Threshold calculation: width=%d, height=%d, isEncoder=%d, codecMode=%d, threshold=%d",
+            frameWidth, frameHeight, isEncoder, codecMode, MediaResetParam.watchdogCountThreshold);
 
         return MOS_STATUS_SUCCESS;
     }
@@ -347,7 +355,9 @@ public:
         par.dwRegister = MediaResetParam.watchdogCountThresholdOffset;
         MHW_ADDCMD_F(MI_LOAD_REGISTER_IMM)(cmdBuffer);
 
-        MHW_VERBOSEMESSAGE("MediaReset Threshold is %d", MediaResetParam.watchdogCountThreshold * (this->m_osItf->bSimIsActive ? 2 : 1));
+        MHW_VERBOSEMESSAGE("MediaReset Threshold is %d, register=0x%x", 
+            MediaResetParam.watchdogCountThreshold * (this->m_osItf->bSimIsActive ? 2 : 1),
+            par.dwRegister);
 
         //Start Watchdog Timer
         auto& par1 = MHW_GETPAR_F(MI_LOAD_REGISTER_IMM)();
@@ -1078,6 +1088,7 @@ public:
          params.CompareOperation = (mhw::mi::MHW_COMMON_MI_SEMAPHORE_COMPARE_OPERATION) MHW_MI_SAD_GREATER_THAN_OR_EQUAL_SDD;
          params.dwResourceOffset = 0;
          params.bRegisterPollMode = false;
+         params.waitTokenNumber   = static_cast<uint32_t>(fenceTokenValue);
          status                  = MHW_ADDCMD_F(MI_SEMAPHORE_WAIT)(cmdbuffer, batchBuffer);
          MHW_CHK_STATUS_RETURN(status);
 

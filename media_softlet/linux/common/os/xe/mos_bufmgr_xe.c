@@ -899,7 +899,6 @@ mos_context_create_shared_xe(
 {
     MOS_UNUSED(ctx);
     MOS_UNUSED(ctx_type);
-    MOS_UNUSED(bContextProtected);
 
     MOS_DRM_CHK_NULL_RETURN_VALUE(bufmgr, nullptr)
     MOS_DRM_CHK_NULL_RETURN_VALUE(engine_map, nullptr)
@@ -925,6 +924,10 @@ mos_context_create_shared_xe(
     context = MOS_New(mos_xe_context);
     MOS_DRM_CHK_NULL_RETURN_VALUE(context, nullptr)
 
+    struct drm_xe_ext_set_property* ext = nullptr;
+    struct drm_xe_ext_set_property timeslice;
+    struct drm_xe_ext_set_property protect;
+
     /**
      * Set exec_queue timeslice for render/ compute only as WA to ensure exec sequence.
      * Note, this is caused by a potential issue in kmd since exec_queue preemption by plenty of WL w/ same priority.
@@ -934,7 +937,6 @@ mos_context_create_shared_xe(
                 && (ctx_width * num_placements == 1)
                 && bufmgr_gem->exec_queue_timeslice != EXEC_QUEUE_TIMESLICE_DEFAULT)
     {
-        struct drm_xe_ext_set_property timeslice;
         memclear(timeslice);
         timeslice.property = DRM_XE_EXEC_QUEUE_SET_PROPERTY_TIMESLICE;
         /**
@@ -942,10 +944,26 @@ mos_context_create_shared_xe(
          */
         timeslice.value = bufmgr_gem->exec_queue_timeslice;
         timeslice.base.name = DRM_XE_EXEC_QUEUE_EXTENSION_SET_PROPERTY;
-        create.extensions = (uintptr_t)(&timeslice);
+        ext = &timeslice;
         MOS_DRM_NORMALMESSAGE("WA: exec_queue timeslice set by engine class(%d), value(%d)",
                     engine_class, bufmgr_gem->exec_queue_timeslice);
     }
+
+    /**
+     * Set exec_queue protect for PXP usage.
+     */
+    if (bContextProtected)
+    {
+        memclear(protect);
+        protect.base.name = DRM_XE_EXEC_QUEUE_EXTENSION_SET_PROPERTY,
+        protect.property = DRM_XE_EXEC_QUEUE_SET_PROPERTY_PXP_TYPE,
+        protect.value = DRM_XE_PXP_TYPE_HWDRM;
+
+        protect.base.next_extension = (uintptr_t)ext;
+        ext = &protect;
+    }
+    
+    create.extensions = (uintptr_t)ext;
 
     ret = drmIoctl(bufmgr_gem->fd, DRM_IOCTL_XE_EXEC_QUEUE_CREATE, &create);
 
@@ -1070,7 +1088,8 @@ __mos_context_restore_xe(struct mos_bufmgr *bufmgr,
     ret = mos_query_engines_count_xe(bufmgr, &nengine);
     MOS_DRM_CHK_STATUS_MESSAGE_RETURN(ret,
                 "query engine count of restore failed, return error(%d)", ret)
-    struct drm_xe_engine_class_instance engine_map[nengine];
+    struct drm_xe_engine_class_instance *engine_map = nullptr;
+    engine_map = (struct drm_xe_engine_class_instance *)MOS_AllocAndZeroMemory(nengine * sizeof(struct drm_xe_engine_class_instance));
     ret = mos_query_engines_xe(bufmgr,
                 context->engine_class,
                 context->engine_caps,
@@ -1102,7 +1121,7 @@ __mos_context_restore_xe(struct mos_bufmgr *bufmgr,
     //restore
     context->ctx.ctx_id = create.exec_queue_id;
     context->reset_count += 1;
-
+    MOS_SafeFreeMemory(engine_map);
     return MOS_XE_SUCCESS;
 }
 
@@ -2466,7 +2485,7 @@ mos_bo_context_exec_with_sync_xe(struct mos_linux_bo **bo, int num_bo, struct mo
     struct mos_xe_bufmgr_gem *bufmgr_gem = (struct mos_xe_bufmgr_gem *) bo[0]->bufmgr;
     MOS_DRM_CHK_NULL_RETURN_VALUE(bufmgr_gem, -EINVAL)
 
-    uint64_t batch_addrs[num_bo];
+    uint64_t *batch_addrs = (uint64_t*)MOS_AllocAndZeroMemory(num_bo * sizeof(uint64_t));
 
     std::vector<mos_xe_exec_bo> exec_list;
     for (int i = 0; i < num_bo; i++)
@@ -2500,6 +2519,7 @@ mos_bo_context_exec_with_sync_xe(struct mos_linux_bo **bo, int num_bo, struct mo
         {
             MOS_DRM_ASSERTMESSAGE("Failed to initial context timeline dep");
             bufmgr_gem->m_lock.unlock();
+            MOS_SafeFreeMemory(batch_addrs);
             return -ENOMEM;
         }
     }
@@ -2601,7 +2621,7 @@ mos_bo_context_exec_with_sync_xe(struct mos_linux_bo **bo, int num_bo, struct mo
     {
         mos_sync_syncobj_destroy(bufmgr_gem->fd, temp_syncobj);
     }
-
+    MOS_SafeFreeMemory(batch_addrs);
     //Note: keep exec return value for final return value.
     return ret;
 }
@@ -2929,6 +2949,12 @@ mos_query_device_blob_xe(struct mos_bufmgr *bufmgr, MEDIA_SYSTEM_INFO* gfx_info)
         {
             assert(hwconfig[i+1] == 1);
             gfx_info->MaxVECS = hwconfig[i+2];
+        }
+
+        if (INTEL_HWCONFIG_SLM_SIZE_PER_SS_IN_KB == hwconfig[i])
+        {
+            assert(hwconfig[i + 1] == 1);
+            gfx_info->SLMSizeInKb = hwconfig[i + 2];
         }
 
         /* Advance to next key */

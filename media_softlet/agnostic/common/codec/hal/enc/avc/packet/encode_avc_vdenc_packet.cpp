@@ -95,11 +95,10 @@ namespace encode {
         m_basicFeature = dynamic_cast<AvcBasicFeature *>(m_featureManager->GetFeature(FeatureIDs::basicFeature));
         ENCODE_CHK_NULL_RETURN(m_basicFeature);
 
-#ifdef _MMC_SUPPORTED
         m_mmcState = m_pipeline->GetMmcState();
         ENCODE_CHK_NULL_RETURN(m_mmcState);
         m_basicFeature->m_mmcState = m_mmcState;
-#endif
+
         m_allocator = m_pipeline->GetEncodeAllocator();
         ENCODE_CHK_STATUS_RETURN(AllocateResources());
 
@@ -192,6 +191,10 @@ namespace encode {
         ENCODE_CHK_STATUS_RETURN(PatchSliceLevelCommands(cmdBuffer, packetPhase));
 
         ENCODE_CHK_STATUS_RETURN(Mos_Solo_PostProcessEncode(m_osInterface, &m_basicFeature->m_resBitstreamBuffer, &m_basicFeature->m_reconSurface));
+
+#if USE_CODECHAL_DEBUG_TOOL
+        ENCODE_CHK_STATUS_RETURN(DumpReferences());
+#endif
 
         return MOS_STATUS_SUCCESS;
     }
@@ -440,6 +443,17 @@ namespace encode {
             SETPAR_AND_ADDCMD(MFX_AVC_DIRECTMODE_STATE, m_mfxItf, &cmdBuffer);
         }
 
+        // Log previous frame resolution for OCA debugging
+        if (m_osInterface && m_osInterface->pOsContext)
+        {
+            char ocaLogMsg[256] = {};
+            MOS_SecureStringPrint(ocaLogMsg, sizeof(ocaLogMsg), sizeof(ocaLogMsg),
+                "AVC Encode - Previous Frame Resolution: Height=%d, Width=%d",
+                m_basicFeature->m_prevFrameHeight, m_basicFeature->m_prevFrameWidth);
+            HalOcaInterfaceNext::TraceMessage(cmdBuffer, (MOS_CONTEXT_HANDLE)m_osInterface->pOsContext, 
+                ocaLogMsg, sizeof(ocaLogMsg));
+        }
+
         return MOS_STATUS_SUCCESS;
     }
 
@@ -588,7 +602,7 @@ namespace encode {
 
         PMOS_RESOURCE presMetadataBuffer = m_basicFeature->m_resMetadataBuffer;
         MetaDataOffset resourceOffset    = m_basicFeature->m_metaDataOffset;
-        if ((presMetadataBuffer == nullptr) || !m_pipeline->IsLastPass())
+        if (presMetadataBuffer == nullptr)
         {
             return MOS_STATUS_SUCCESS;
         }
@@ -1117,7 +1131,12 @@ namespace encode {
         ENCODE_CHK_NULL_RETURN(perfProfiler);
         ENCODE_CHK_STATUS_RETURN(perfProfiler->AddPerfCollectStartCmd(
             (void *)m_pipeline, m_osInterface, m_miItf, cmdBuffer));
-
+#if (_DEBUG || _RELEASE_INTERNAL)
+        if (m_statusReport && m_statusReport->IsVdboxIdReportEnabled())
+        {
+            StoreEngineId(cmdBuffer, encode::EncodeStatusReportType::statusReportCsEngineIdRegs);
+        }
+#endif
         return MOS_STATUS_SUCCESS;
     }
 
@@ -1445,10 +1464,8 @@ namespace encode {
             ENCODE_CHK_STATUS_RETURN(packetUtilities->SendMarkerCommand(&cmdBuffer, presSetMarker));
         }
 
-    #ifdef _MMC_SUPPORTED
         ENCODE_CHK_NULL_RETURN(m_mmcState);
         ENCODE_CHK_STATUS_RETURN(m_mmcState->SendPrologCmd(&cmdBuffer, false));
-    #endif
 
         MHW_GENERIC_PROLOG_PARAMS genericPrologParams;
         MOS_ZeroMemory(&genericPrologParams, sizeof(genericPrologParams));
@@ -2672,6 +2689,18 @@ namespace encode {
                 0,
                 CODECHAL_NUM_MEDIA_STATES));
         }
+        return MOS_STATUS_SUCCESS;
+    }
+
+    MOS_STATUS AvcVdencPkt::DumpReferences()
+    {
+        ENCODE_FUNC_CALL();
+
+        auto *debugInterface = m_pipeline->GetDebugInterface();
+        ENCODE_CHK_NULL_RETURN(debugInterface);
+
+        ENCODE_CHK_STATUS_RETURN(m_basicFeature->m_ref->DumpReferences(*debugInterface));
+
         return MOS_STATUS_SUCCESS;
     }
 

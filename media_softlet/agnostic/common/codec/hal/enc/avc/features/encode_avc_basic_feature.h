@@ -120,7 +120,7 @@ public:
     bool IsAvcPSlice(uint8_t sliceType) const;
     bool IsAvcBSlice(uint8_t sliceType) const;
 
-    MHW_SETPAR_DECL_HDR(VDENC_PIPE_MODE_SELECT);
+    virtual MHW_SETPAR_DECL_HDR(VDENC_PIPE_MODE_SELECT);
 
     MHW_SETPAR_DECL_HDR(VDENC_SRC_SURFACE_STATE);
 
@@ -240,11 +240,14 @@ public:
     bool                            m_brcAdaptiveRegionBoostSupported = false;  //!< Adaptive Region Boost supported flag
     bool                            m_brcAdaptiveRegionBoostEnabled   = false;  //!< Adaptive Region Boost enabled flag
 
+    uint32_t                       m_prevFrameHeight = 0; //!< Previous frame height before resolution change (for OCA logging)
+    uint32_t                       m_prevFrameWidth  = 0; //!< Previous frame width before resolution change (for OCA logging)
+
 protected:
     MOS_STATUS SetSequenceStructs();
     MOS_STATUS SetPictureStructs();
     MOS_STATUS UpdateSeiParameters(EncoderParams* params);
-    void UpdateMinMaxQp();
+    virtual void UpdateMinMaxQp();
     int32_t GetMaxMBPS(uint8_t levelIdc);
     MOS_STATUS SetSliceStructs();
     void CheckResolutionChange();

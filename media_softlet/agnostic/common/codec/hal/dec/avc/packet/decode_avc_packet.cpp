@@ -30,6 +30,9 @@
 #include "decode_status_report_defs.h"
 #include "decode_predication_packet.h"
 #include "codechal_debug.h"
+#if (_DEBUG || _RELEASE_INTERNAL)
+#include "decode_avc_debug_packet.h"
+#endif
 
 namespace decode
 {
@@ -63,6 +66,17 @@ MOS_STATUS AvcDecodePkt::Init()
     DECODE_CHK_NULL(m_slicePkt);
     DECODE_CHK_STATUS(m_slicePkt->CalculateCommandSize(m_sliceStatesSize, m_slicePatchListSize));
 
+#if (_DEBUG || _RELEASE_INTERNAL)
+    // Initialize debug packet
+    DecodeSubPacket* debugSubPacket = m_avcPipeline->GetSubPacket(
+        DecodePacketId(m_avcPipeline, avcDebugSubPacketId));
+    m_debugPkt = dynamic_cast<AvcDecodeDebugPkt*>(debugSubPacket);
+    if (m_debugPkt != nullptr)
+    {
+        DECODE_CHK_STATUS(m_debugPkt->Init());
+    }
+#endif
+
     return MOS_STATUS_SUCCESS;
 }
 
@@ -79,6 +93,15 @@ MOS_STATUS AvcDecodePkt::Prepare()
 MOS_STATUS AvcDecodePkt::Destroy()
 {
     m_statusReport->UnregistObserver(this);
+
+#if (_DEBUG || _RELEASE_INTERNAL)
+    // Destroy debug packet
+    if (m_debugPkt != nullptr)
+    {
+        DECODE_CHK_STATUS(m_debugPkt->Destroy());
+    }
+#endif
+
     return MOS_STATUS_SUCCESS;
 }
 
@@ -120,23 +143,19 @@ MOS_STATUS AvcDecodePkt::SendPrologWithFrameTracking(MOS_COMMAND_BUFFER &cmdBuff
     DECODE_CHK_NULL(makerPacket);
     DECODE_CHK_STATUS(makerPacket->Execute(cmdBuffer));
 
-#ifdef _MMC_SUPPORTED
     m_mmcState        = m_avcPipeline->GetMmcState();
     bool isMmcEnabled = (m_mmcState != nullptr && m_mmcState->IsMmcEnabled());
     if (isMmcEnabled)
     {
         DECODE_CHK_STATUS(m_mmcState->SendPrologCmd(&cmdBuffer, false));
     }
-#endif
 
     MHW_GENERIC_PROLOG_PARAMS genericPrologParams;
     MOS_ZeroMemory(&genericPrologParams, sizeof(genericPrologParams));
     genericPrologParams.pOsInterface  = m_osInterface;
     genericPrologParams.pvMiInterface = nullptr;
 
-#ifdef _MMC_SUPPORTED
     genericPrologParams.bMmcEnabled = isMmcEnabled;
-#endif
 
      DECODE_CHK_STATUS(Mhw_SendGenericPrologCmdNext(&cmdBuffer, &genericPrologParams, m_miItf));
 
@@ -183,6 +202,14 @@ MOS_STATUS AvcDecodePkt::Completed(void *mfxStatus, void *rcsStatus, void *statu
 
     DECODE_VERBOSEMESSAGE("Current Frame Index = %d", statusReportData->currDecodedPic.FrameIdx);
     DECODE_VERBOSEMESSAGE("FrameCrc = 0x%x", statusReportData->frameCrc);
+
+#if (_DEBUG || _RELEASE_INTERNAL)
+    // Call debug packet completion handling for MFX debug functionality
+    if (m_debugPkt != nullptr)
+    {
+        DECODE_CHK_STATUS(m_debugPkt->Completed());
+    }
+#endif
 
     return MOS_STATUS_SUCCESS;
 }
@@ -270,7 +297,12 @@ MOS_STATUS AvcDecodePkt::StartStatusReport(uint32_t srType, MOS_COMMAND_BUFFER *
     DECODE_CHK_NULL(perfProfiler);
     DECODE_CHK_STATUS(perfProfiler->AddPerfCollectStartCmd(
         (void *)m_avcPipeline, m_osInterface, m_miItf, cmdBuffer));
-
+#if (_DEBUG || _RELEASE_INTERNAL)
+    if (m_statusReport && m_statusReport->IsVdboxIdReportEnabled())
+    {
+        StoreEngineId(cmdBuffer, decode::DecodeStatusReportType::CsEngineIdOffset_0);
+    }
+#endif
     return MOS_STATUS_SUCCESS;
 }
 
@@ -279,6 +311,13 @@ MOS_STATUS AvcDecodePkt::EndStatusReport(uint32_t srType, MOS_COMMAND_BUFFER *cm
     DECODE_FUNC_CALL();
     DECODE_CHK_NULL(cmdBuffer);
     DECODE_CHK_STATUS(ReadMfxStatus(m_statusReport, *cmdBuffer));
+#if (_DEBUG || _RELEASE_INTERNAL)
+        // Execute debug packet for MFX debug functionality before MiFlush
+        if (m_debugPkt != nullptr)
+        {
+            DECODE_CHK_STATUS(m_debugPkt->Execute(*cmdBuffer, m_statusReport));
+        }
+#endif
     DECODE_CHK_STATUS(MediaPacket::EndStatusReportNext(srType, cmdBuffer));
 
     MediaPerfProfiler *perfProfiler = MediaPerfProfiler::Instance();

@@ -42,3 +42,8 @@ if(XE3_LPM_SUPPORT)
 media_include_subdirectory(xe3_lpm)
 media_include_subdirectory(xe3_lpm_r0)
 endif()
+
+if(XE3P_LPM_SUPPORT)
+media_include_subdirectory(xe3p_lpm)
+media_include_subdirectory(xe3p_lpm_r0)
+endif()

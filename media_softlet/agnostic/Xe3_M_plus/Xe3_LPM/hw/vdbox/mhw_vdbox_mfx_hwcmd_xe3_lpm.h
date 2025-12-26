@@ -32,11 +32,12 @@
 #define __MHW_VDBOX_MFX_HWCMD_XE3_LPM_H__
 
 #pragma once
-#pragma pack(1)
-
 #include <cstdint>
 #include <cstddef>
 #include "media_class_trace.h"
+
+
+#pragma pack(1)
 
 namespace mhw
 {
@@ -1695,8 +1696,8 @@ public:
         {
             struct
             {
-                uint32_t                 FrameSize                                        : __CODEGEN_BITFIELD( 0, 15)    ; //!< Frame Size
-                uint32_t                 Reserved48                                       : __CODEGEN_BITFIELD(16, 31)    ; //!< Reserved
+                uint32_t                 FrameSize                                        : __CODEGEN_BITFIELD( 0, 16)    ; //!< Frame Size
+                uint32_t                 Reserved49                                       : __CODEGEN_BITFIELD(17, 31)    ; //!< Reserved
             };
             uint32_t                     Value;
         } DW1;

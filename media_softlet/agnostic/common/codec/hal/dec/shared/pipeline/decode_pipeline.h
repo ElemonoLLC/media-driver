@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2024, Intel Corporation
+* Copyright (c) 2018-2025, Intel Corporation
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -319,6 +319,28 @@ public:
     //!
     virtual MOS_STATUS SetDecodeFormat(bool isShortFormat ){ return MOS_STATUS_UNIMPLEMENTED; };
 
+#if (_DEBUG || _RELEASE_INTERNAL)
+    //!
+    //! \brief  CRC output enable
+    //! \return bool
+    //!         true if enabled, else false
+    //!
+    bool GetCRCOutputEnable()
+    {
+        return m_crcoutputEnable;
+    }
+
+    //!
+    //! \brief  Get Vdbox command counter override value
+    //! \return uint32_t
+    //!         command counter override value
+    //!
+    uint32_t GetVdboxCommandCounterOverride()
+    {
+        return m_vdboxCommandCounterOverride;
+    }
+#endif
+
 protected:
     //!
     //! \brief  Initialize the decode pipeline
@@ -525,6 +547,8 @@ protected:
 #if (_DEBUG || _RELEASE_INTERNAL)
     uint32_t                m_statusCheckCount = 0;     //!< count for status check
     uint32_t                m_delayMiliseconds = 0;     //!< miliseconds delay after each frame
+    uint32_t                m_crcoutputEnable  = 0;     //!< crc output enable
+    uint32_t                m_vdboxCommandCounterOverride = 0;  //!< vdbox command counter override
 #endif
 
     PMOS_SURFACE            m_tempOutputSurf = nullptr;

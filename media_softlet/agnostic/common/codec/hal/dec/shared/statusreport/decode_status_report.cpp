@@ -32,6 +32,7 @@ namespace decode {
 
     DecodeStatusReport::DecodeStatusReport(
         DecodeAllocator* allocator, bool enableRcs, PMOS_INTERFACE osInterface):
+        MediaStatusReport(osInterface),
         m_enableRcs(enableRcs),
         m_allocator(allocator),
         m_osInterface(osInterface)
@@ -202,6 +203,13 @@ namespace decode {
         // The frame is completed, notify the observers
         if (statusReportData->codecStatus == CODECHAL_STATUS_SUCCESSFUL)
         {
+#if (_DEBUG || _RELEASE_INTERNAL)
+            if (m_enableVdboxIdReport)
+            {
+                DECODE_CHK_NULL(decodeStatusMfx);
+                ParseVdboxIdsFromBuf(decodeStatusMfx->m_mmioCsEngineIdReg);
+            }
+#endif
             NotifyObservers(decodeStatusMfx, decodeStatusRcs, statusReportData);
         }
 
@@ -244,14 +252,15 @@ namespace decode {
         m_statusBufAddr[CsEngineIdOffset_5].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_mmioCsEngineIdReg[5]);
         m_statusBufAddr[CsEngineIdOffset_6].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_mmioCsEngineIdReg[6]);
         m_statusBufAddr[CsEngineIdOffset_7].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_mmioCsEngineIdReg[7]);
-        m_statusBufAddr[HucErrorStatus2Mask].offset  = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus2);
-        m_statusBufAddr[HucErrorStatus2Reg].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus2) + sizeof(uint32_t);
-        m_statusBufAddr[HucErrorStatusMask].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus);
-        m_statusBufAddr[HucErrorStatusReg].offset    = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus) + sizeof(uint32_t);
+    m_statusBufAddr[HucErrorStatus2Mask].offset  = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus2);
+    m_statusBufAddr[HucErrorStatus2Reg].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus2) + sizeof(uint32_t);
+    m_statusBufAddr[HucErrorStatusMask].offset   = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus);
+    m_statusBufAddr[HucErrorStatusReg].offset    = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_hucErrorStatus) + sizeof(uint32_t);
+    m_statusBufAddr[statusReportCmdCounter].offset = mfxStatusOffset + CODECHAL_OFFSETOF(DecodeStatusMfx, m_mmioCmdCounterReg);
 
-        const uint32_t rcsStatusOffset = 0;
-        m_statusBufAddr[statusReportRcs].offset      = rcsStatusOffset + CODECHAL_OFFSETOF(DecodeStatusRcs, status);
-    }
+    const uint32_t rcsStatusOffset = 0;
+    m_statusBufAddr[statusReportRcs].offset      = rcsStatusOffset + CODECHAL_OFFSETOF(DecodeStatusRcs, status);
+}
 
     MOS_STATUS DecodeStatusReport::UpdateCodecStatus(
         DecodeStatusReportData* statusReportData,
@@ -292,10 +301,31 @@ namespace decode {
         return m_statusReportData[index];
     }
 
+#if (_DEBUG || _RELEASE_INTERNAL)
+    MOS_STATUS DecodeStatusReport::ReportUsedVdboxIds()
+    {
+        if (m_enableVdboxIdReport)
+        {
+            DECODE_CHK_NULL(m_dataStatusMfx);
+            DECODE_CHK_NULL(m_completedCount);
+            uint32_t completedCount = *m_completedCount;
+            for (uint32_t num = m_reportedCount; num < completedCount; num++)
+            {
+                const DecodeStatusMfx& status = GetMfxStatus(num);
+                ParseVdboxIdsFromBuf(status.m_mmioCsEngineIdReg);
+            }
+            MediaStatusReport::ReportUsedVdboxIds();
+        }
+        return MOS_STATUS_SUCCESS;
+    }
+#endif
+
     MOS_STATUS DecodeStatusReport::Destroy()
     {
         DECODE_FUNC_CALL();
-
+#if (_DEBUG || _RELEASE_INTERNAL)
+        ReportUsedVdboxIds();
+#endif
         if (m_allocator != nullptr && m_statusBufMfx != nullptr)
         {
             m_allocator->UnLock(m_statusBufMfx);

@@ -136,7 +136,7 @@ public:
         return formattedOpCode;
     }
 
-    MOS_STATUS SetWatchdogTimerThreshold(uint32_t frameWidth, uint32_t frameHeight, bool isEncoder, uint32_t codecMode) override
+    MOS_STATUS SetWatchdogTimerThreshold(uint32_t frameWidth, uint32_t frameHeight, bool isEncoder, uint32_t codecMode, bool isTee) override
     {
         return MOS_STATUS_SUCCESS;
     }
@@ -363,9 +363,17 @@ public:
         cmd.DW0.WaitMode           = params.bPollingWaitMode;
         cmd.DW0.CompareOperation   = params.CompareOperation;
         cmd.DW1.SemaphoreDataDword = params.dwSemaphoreData;
+        cmd.DW4.WaitTokenNumber    = params.waitTokenNumber;
 
         return MOS_STATUS_SUCCESS;
     }
+
+#ifdef _MEDIA_RESERVED
+    _MHW_SETCMD_OVERRIDE_DECL(MI_SEMAPHORE_WAIT_64)
+    {
+        return MOS_STATUS_SUCCESS;
+    }
+#endif
 
     _MHW_SETCMD_OVERRIDE_DECL(PIPE_CONTROL)
     {

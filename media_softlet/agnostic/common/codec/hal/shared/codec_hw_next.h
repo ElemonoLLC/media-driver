@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021-2023, Intel Corporation
+* Copyright (c) 2021-2025, Intel Corporation
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -45,6 +45,9 @@
 
 #define CODEC_HW_ASSERTMESSAGE(_message, ...)                                           \
     MOS_ASSERTMESSAGE(MOS_COMPONENT_CODEC, MOS_CODEC_SUBCOMP_HW, _message, ##__VA_ARGS__)
+
+#define CODEC_HW_WARNINGMESSAGE(_message, ...)                                          \
+    MOS_WARNINGMESSAGE(MOS_COMPONENT_CODEC, MOS_CODEC_SUBCOMP_HW, _message, ##__VA_ARGS__)
 
 #define CODEC_HW_NORMALMESSAGE(_message, ...)                                           \
     MOS_NORMALMESSAGE(MOS_COMPONENT_CODEC, MOS_CODEC_SUBCOMP_HW, _message, ##__VA_ARGS__)
@@ -292,6 +295,17 @@ public:
     }
 
     //!
+    //! \brief    Get aqm interface
+    //! \details  Get aqm interface in codechal hw interface next
+    //!
+    //! \return    pointer to new aqm interface
+    //!
+    inline std::shared_ptr<mhw::vdbox::aqm::Itf> GetAqmInterfaceNext()
+    {
+        return m_aqmItf;
+    }
+
+    //!
     //! \brief    Get Os interface
     //! \details  Get Os interface in codechal hw interface
     //!
@@ -349,6 +363,16 @@ public:
     //!
     MOS_STATUS InitCacheabilityControlSettings(
         CODECHAL_FUNCTION codecFunction);
+
+
+    //!
+    //! \brief    Init MemoryObject Cache Settings
+    //! \details  Init MemoryObject Cache Settings in codechal hw interface
+    //!
+    //! \return   MOS_STATUS
+    //!           MOS_STATUS_SUCCESS if success, else fail reason
+    //!
+    MOS_STATUS InitMemoryObjectCacheSettings();
 
     //!
     //! \brief    Get memory object of GMM Cacheability control settings
@@ -1001,6 +1025,7 @@ protected:
     std::shared_ptr<mhw::render::Itf>        m_renderItf   = nullptr;      //!< Pointer to render interface
     std::shared_ptr<MediaSfcInterface>       m_mediaSfcItf = nullptr;      //!< Pointer to Media sfc interface
     std::shared_ptr<mhw::vdbox::vvcp::Itf>   m_vvcpItf     = nullptr;
+    std::shared_ptr<mhw::vdbox::aqm::Itf>    m_aqmItf      = nullptr;
     // States
     PMOS_INTERFACE       m_osInterface;  //!< Pointer to OS interface
 

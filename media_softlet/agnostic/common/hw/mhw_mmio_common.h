@@ -46,6 +46,7 @@ static constexpr uint32_t  CS_GENERAL_PURPOSE_REGISTER11_HI_OFFSET              
 static constexpr uint32_t  CS_GENERAL_PURPOSE_REGISTER12_LO_OFFSET                                     = 0x2660;
 static constexpr uint32_t  CS_GENERAL_PURPOSE_REGISTER12_HI_OFFSET                                     = 0x2664;
 static constexpr uint32_t  CS_PREDICATE_RESULT2                                                        = 0x23BC;
+static constexpr uint32_t  CS_ENGINE_ID_OFFSET                                                         = 0x1C008C;
 
 // Vebox register offsets
 // Used in Commen MI
@@ -80,6 +81,7 @@ static constexpr uint32_t  WATCHDOG_COUNT_THRESTHOLD_OFFSET_VECS                
 
 static constexpr uint32_t  WATCHDOG_COUNT_CTRL_OFFSET_TEECS                                            = 0x11A178;
 static constexpr uint32_t  WATCHDOG_COUNT_THRESTHOLD_OFFSET_TEECS                                      = 0x11A17C;
+static constexpr uint32_t  WATCHDOG_TEE_DEFAULT_WATCHDOG_THRESHOLD_IN_MS                               = 200;
 
 //Semaphore Token
 static constexpr uint32_t   MMIO_SEMAPHORE_TOKEN_RCS                                                   = 0x022b4;

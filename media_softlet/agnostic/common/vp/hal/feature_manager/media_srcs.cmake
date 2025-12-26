@@ -28,6 +28,9 @@ set(TMP_SOURCES_
     ${CMAKE_CURRENT_LIST_DIR}/sw_filter.cpp
     ${CMAKE_CURRENT_LIST_DIR}/sw_filter_handle.cpp
     ${CMAKE_CURRENT_LIST_DIR}/vp_kernelset.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/vp_graphset.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/vp_graph_manager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/vp_feature_manager_softlet.cpp
 )
 
 set(TMP_HEADERS_
@@ -42,6 +45,9 @@ set(TMP_HEADERS_
     ${CMAKE_CURRENT_LIST_DIR}/sw_filter_handle.h
     ${CMAKE_CURRENT_LIST_DIR}/vp_kernelset.h
     ${CMAKE_CURRENT_LIST_DIR}/surface_type.h
+    ${CMAKE_CURRENT_LIST_DIR}/vp_graphset.h
+    ${CMAKE_CURRENT_LIST_DIR}/vp_graph_manager.h
+    ${CMAKE_CURRENT_LIST_DIR}/vp_feature_manager_softlet.h
 )
 
 set(SOFTLET_VP_SOURCES_

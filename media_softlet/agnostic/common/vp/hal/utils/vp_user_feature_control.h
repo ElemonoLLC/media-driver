@@ -59,7 +59,9 @@ public:
         uint32_t force3DLutInterpolation    = 0;
         uint32_t enabledSFCNv12P010LinearOutput = 0;
         uint32_t enabledSFCRGBPRGB24Output  = 0;
-        bool     enableIFNCC                    = false;
+        bool     enableIFNCC                = false;
+        bool     enable3DLutNewLayout       = false;  // Enable 3DLUT new layout feature
+        std::string lut3DFilePath           = "";     // File path for 3DLUT data
 #endif
         VP_CTRL enableOcl3DLut              = VP_CTRL_DEFAULT;
         VP_CTRL forceOclFC                  = VP_CTRL_DEFAULT;
@@ -77,6 +79,7 @@ public:
         bool               decompForInterlacedSurfWaEnabled = false;
         bool               enableSFCLinearOutputByTileConvert = false;
         bool               fallbackScalingToRender8K          = false;
+        uint64_t           hybridMgrSubmitMode                = 0;
     };
 
     uint32_t Is3DLutKernelOnly()
@@ -114,6 +117,15 @@ public:
     {
         return m_ctrlVal.bDisableOclFcFp;
     }
+    bool Is3DLutNewLayoutEnabled()
+    {
+        return m_ctrlVal.enable3DLutNewLayout;
+    }
+
+    std::string Get3DLutFilePath()
+    {
+        return m_ctrlVal.lut3DFilePath;
+    }
 #endif
 
     bool IsSFCLinearOutputByTileConvertEnabled()
@@ -124,6 +136,8 @@ public:
     virtual MOS_STATUS CreateUserSettingForDebug();
 
     virtual MOS_STATUS Update(PVP_PIPELINE_PARAMS params);
+
+    virtual MOS_STATUS UpdateOnNewPipe(SwFilterPipe *swFilterPipe, uint32_t pipeCnt);
 
     bool EnableOclFC();
 
@@ -223,6 +237,11 @@ public:
     uint32_t GetSplitFramePortions()
     {
         return m_ctrlVal.splitFramePortions;
+    }
+
+    uint64_t GetHybridMgrSubmitMode()
+    {
+        return m_ctrlVal.hybridMgrSubmitMode;
     }
 
     MOS_STATUS ForceRenderPath(bool status)

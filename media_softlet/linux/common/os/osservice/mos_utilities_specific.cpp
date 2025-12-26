@@ -1894,7 +1894,6 @@ int32_t MosUtilities::MosUserFeatureWaitForSingleObject(
             semop(semid, operation, 1);
             pCallback(Context, 0);
         }
-        exit(0);
     }
     else
     {
@@ -2464,7 +2463,7 @@ void MosUtilities::MosTraceEventInit()
             MosUtilitiesSpecificNext::m_levelEnv = static_cast<uint32_t>(strtoll(val, nullptr, 0));
         }
         m_mosTraceEnable = true;
-        m_mosTraceFilter = &MosUtilitiesSpecificNext::m_filterEnv;
+        m_mosTraceFilter = { &MosUtilitiesSpecificNext::m_filterEnv, 1};
         m_mosTraceLevel  = reinterpret_cast<uint8_t *>(&MosUtilitiesSpecificNext::m_levelEnv);
     }
     else

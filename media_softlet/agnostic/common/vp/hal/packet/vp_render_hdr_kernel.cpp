@@ -826,6 +826,11 @@ MOS_STATUS VpRenderHdrKernel::VpHal_HdrCalcYuvToRgbMatrix(
     VpHal_HdrGetYuvRangeAndOffset(src, &Y_o, &Y_e, &C_z, &C_e);
 
     // after + (3x3)(3x3)
+    if (Y_e == 0.0f || C_e == 0.0f)
+    {
+        VP_RENDER_ASSERTMESSAGE("Y_e = %f and C_e = %f, should not be zero.", Y_e, C_e);
+        return MOS_STATUS_INVALID_PARAMETER;
+    }
     pOutMatrix[0]  = pTransferMatrix[0] * R_e / Y_e;
     pOutMatrix[4]  = pTransferMatrix[4] * R_e / Y_e;
     pOutMatrix[8]  = pTransferMatrix[8] * R_e / Y_e;
@@ -989,6 +994,11 @@ MOS_STATUS VpRenderHdrKernel::VpHal_HdrCalcRgbToYuvMatrix(
     VpHal_HdrGetRgbRangeAndOffset(src, &R_o, &R_e);
     VpHal_HdrGetYuvRangeAndOffset(dst, &Y_o, &Y_e, &C_z, &C_e);
 
+    if (R_e == 0.0f )
+    {
+        VP_RENDER_ASSERTMESSAGE("R_e = %f  should not be zero.", R_e);
+        return MOS_STATUS_INVALID_PARAMETER;
+    }
     // multiplication of + onwards
     pOutMatrix[0]  = pTransferMatrix[0] * Y_e / R_e;
     pOutMatrix[1]  = pTransferMatrix[1] * Y_e / R_e;
@@ -3433,7 +3443,7 @@ MOS_STATUS VpRenderHdrKernel::SetupSurfaceState()
 
         surfParam.surfaceOverwriteParams.renderSurfaceParams.MemObjCtl = m_surfMemCacheCtl.SourceSurfMemObjCtl;
 
-        m_surfaceState.insert(std::make_pair(SurfaceType(SurfaceTypeHdrInputLayer0 + i), surfParam));
+        m_surfaceState.emplace(SurfaceType(SurfaceTypeHdrInputLayer0 + i), surfParam);
 
         auto OETF1DLUT = m_surfaceGroup->find(SurfaceType(SurfaceTypeHdrOETF1DLUTSurface0 + i));
         VP_SURFACE *OETF1DLUTSrc = (m_surfaceGroup->end() != OETF1DLUT) ? OETF1DLUT->second : nullptr;
@@ -3468,7 +3478,7 @@ MOS_STATUS VpRenderHdrKernel::SetupSurfaceState()
         {
             surfaceResource.surfaceOverwriteParams.renderSurfaceParams.MemObjCtl                = m_surfMemCacheCtl.Lut2DSurfMemObjCtl;
             UpdateCurbeBindingIndex(SurfaceType(SurfaceTypeHdrOETF1DLUTSurface0 + i), iBTentry + VPHAL_HDR_BTINDEX_OETF1DLUT_OFFSET);
-            m_surfaceState.insert(std::make_pair(SurfaceType(SurfaceTypeHdrOETF1DLUTSurface0 + i), surfaceResource));
+            m_surfaceState.emplace(SurfaceType(SurfaceTypeHdrOETF1DLUTSurface0 + i), surfaceResource);
         }
         else if (m_hdrParams->LUTMode[i] == VPHAL_HDR_LUT_MODE_3D)
         {
@@ -3476,7 +3486,7 @@ MOS_STATUS VpRenderHdrKernel::SetupSurfaceState()
             UpdateCurbeBindingIndex(SurfaceType(SurfaceTypeHdrCRI3DLUTSurface0 + i), iBTentry + VPHAL_HDR_BTINDEX_CRI3DLUT_OFFSET);
             surfaceResource.surfaceOverwriteParams.renderSurfaceParams.bWidthInDword_Y          = false;
             surfaceResource.surfaceOverwriteParams.renderSurfaceParams.bWidthInDword_UV         = false;
-            m_surfaceState.insert(std::make_pair(SurfaceType(SurfaceTypeHdrCRI3DLUTSurface0 + i), surfaceResource));
+            m_surfaceState.emplace(SurfaceType(SurfaceTypeHdrCRI3DLUTSurface0 + i), surfaceResource);
         }
     }
 
@@ -3509,7 +3519,7 @@ MOS_STATUS VpRenderHdrKernel::SetupSurfaceState()
 
         surfParam.surfaceOverwriteParams.renderSurfaceParams.MemObjCtl = m_surfMemCacheCtl.TargetSurfMemObjCtl;
 
-        m_surfaceState.insert(std::make_pair(SurfaceType(SurfaceTypeHdrTarget0 + i), surfParam));
+        m_surfaceState.emplace(SurfaceType(SurfaceTypeHdrTarget0 + i), surfParam);
 
         //update render GMM resource usage type
         m_allocator->UpdateResourceUsageType(&layer->osSurface->OsResource, MOS_HW_RESOURCE_USAGE_VP_OUTPUT_PICTURE_RENDER);
@@ -3545,12 +3555,12 @@ MOS_STATUS VpRenderHdrKernel::SetupSurfaceState()
     if (m_hdrParams->bUsingAutoModePipe && bHasAutoModeLayer)
     {
         UpdateCurbeBindingIndex(SurfaceTypeHdrAutoModeCoeff, VPHAL_HDR_BTINDEX_COEFF);
-        m_surfaceState.insert(std::make_pair(SurfaceTypeHdrAutoModeCoeff, surfCoeffParam));
+        m_surfaceState.emplace(SurfaceTypeHdrAutoModeCoeff, surfCoeffParam);
     }
     else
     {
         UpdateCurbeBindingIndex(SurfaceTypeHdrCoeff, VPHAL_HDR_BTINDEX_COEFF);
-        m_surfaceState.insert(std::make_pair(SurfaceTypeHdrCoeff, surfCoeffParam));
+        m_surfaceState.emplace(SurfaceTypeHdrCoeff, surfCoeffParam);
     }
 
     return MOS_STATUS_SUCCESS;
@@ -4146,7 +4156,7 @@ MOS_STATUS VpRenderHdrKernel::GetCurbeState(void *&curbe, uint32_t &curbeLength)
         m_hdrCurbe.DW58.TwoLayerOperationLayer0          = VPHAL_HDR_TWO_LAYER_OPTION_COMP;
     }
 
-    m_hdrCurbe.DW63.FormatDescriptorDestination        = FormatDescriptor;
+    m_hdrCurbe.DW63.FormatDescriptorDestination        = (uint32_t)FormatDescriptor;
     m_hdrCurbe.DW63.ChromaSittingLocationDestination   = ChromaSiting;
     m_hdrCurbe.DW63.ChannelSwapEnablingFlagDestination = bChannelSwap;
 

@@ -206,6 +206,8 @@ public:
         uint32_t              currIdx,
         uint32_t              list)
     {
+        MHW_FUNCTION_ENTER;
+
         auto avcPicParams    = params.pAvcPicParams;
         auto mvcExtPicParams = params.pMvcExtPicParams;
         auto avcRefList      = params.ppAvcRefList;
@@ -261,6 +263,8 @@ public:
     //!
     uint8_t GetNumVdbox() override
     {
+        MHW_FUNCTION_ENTER;
+
         MEDIA_ENGINE_INFO mediaEngineInfo = {};
         m_osItf->pfnGetMediaEngineInfo(m_osItf, mediaEngineInfo);
 
@@ -272,6 +276,8 @@ public:
 #if (_DEBUG || _RELEASE_INTERNAL)
     MOS_STATUS CheckScalabilityOverrideValidity()
     {
+        MHW_FUNCTION_ENTER;
+
         MOS_STATUS eStatus = MOS_STATUS_SUCCESS;
 
         MEDIA_SYSTEM_INFO *gtSystemInfo;
@@ -339,6 +345,8 @@ public:
 
     MOS_STATUS FindGpuNodeToUse(PMHW_VDBOX_GPUNODE_LIMIT gpuNodeLimit) override
     {
+        MHW_FUNCTION_ENTER;
+
         bool       setVideoNode = false;
         MOS_STATUS eStatus      = MOS_STATUS_SUCCESS;
 
@@ -970,7 +978,7 @@ protected:
             InitMocsParams(resourceParams, &cmd.DirectMvBufferAttributes.DW0.Value, 1, 6);
         }
 
-        bool dmvPresent[CODEC_MAX_NUM_REF_FRAME] = { false };
+        bool dmvPresent[CODEC_AVC_NUM_REF_DMV_BUFFERS] = { false };
         for (auto i = 0; i < CODEC_MAX_NUM_REF_FRAME; i++)
         {
             if (params.pAvcPicIdx[i].bValid)

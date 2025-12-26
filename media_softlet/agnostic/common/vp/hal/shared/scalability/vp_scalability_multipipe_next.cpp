@@ -144,6 +144,7 @@ MOS_STATUS VpScalabilityMultiPipeNext::Initialize(const MediaScalabilityOption &
     veInitParms.ucNumOfSdryCmdBufSets          = m_maxCmdBufferSetsNum;
     veInitParms.ucMaxNumPipesInUse             = vpScalabilityOption->GetMaxMultiPipeNum();
     veInitParms.ucMaxNumOfSdryCmdBufInOneFrame = veInitParms.ucMaxNumPipesInUse;
+
     if (m_osInterface->apoMosEnabled)
     {
         SCALABILITY_CHK_NULL_RETURN(m_osInterface->osStreamState);

@@ -32,7 +32,7 @@
 #include "mhw_impl.h"
 #include "mhw_mi_impl.h"
 
-#ifdef IGFX_VDENC_INTERFACE_EXT_SUPPORT
+#ifdef _MEDIA_RESERVED
 #include "mhw_vdbox_vdenc_impl_ext.h"
 #include "mhw_vdbox_vdenc_hwcmd_ext.h"
 #endif
@@ -144,6 +144,17 @@ class Impl : public Itf, public mhw::Impl
     MmioRegistersVdbox m_mmioRegisters[MHW_VDBOX_NODE_MAX] = {};  //!< Mfx mmio registers
 
 public:
+    virtual uint32_t GetCmd1CommandSize() override
+    {
+        // Just return 0 here, please implement logic in platform sepecific impl class.
+        return 0;
+    }
+
+    virtual uint32_t GetCmd2CommandSize() override
+    {
+        // Just return 0 here, please implement logic in platform sepecific impl class.
+        return 0;
+    }
 
     MOS_STATUS SetRowstoreCachingOffsets(const RowStorePar &par) override
     {
@@ -308,6 +319,7 @@ public:
 
     MmioRegistersVdbox *GetMmioRegisters(MHW_VDBOX_NODE_IND index) override
     {
+        MHW_FUNCTION_ENTER;
         if (index < MHW_VDBOX_NODE_MAX)
         {
             return &m_mmioRegisters[index];
@@ -337,6 +349,7 @@ private:
 
     void InitMmioRegisters()
     {
+        MHW_FUNCTION_ENTER;
         MmioRegistersVdbox *mmioRegisters = &m_mmioRegisters[MHW_VDBOX_NODE_1];
 
         mmioRegisters->generalPurposeRegister0LoOffset           = mhw::mi::GENERAL_PURPOSE_REGISTER0_LO_OFFSET_NODE_1_INIT;
@@ -1494,6 +1507,15 @@ protected:
     {
     _MHW_SETCMD_CALLBASE(VDENC_CMD3);
 
+    cmd.DW1_2.VDENC_CMD3_DW1_BIT0  = params.vdencCmd3Par0[0];
+    cmd.DW1_2.VDENC_CMD3_DW1_BIT8  = params.vdencCmd3Par0[1];
+    cmd.DW1_2.VDENC_CMD3_DW1_BIT16 = params.vdencCmd3Par0[2];
+    cmd.DW1_2.VDENC_CMD3_DW1_BIT24 = params.vdencCmd3Par0[3];
+    cmd.DW1_2.VDENC_CMD3_DW2_BIT0  = params.vdencCmd3Par0[4];
+    cmd.DW1_2.VDENC_CMD3_DW2_BIT8  = params.vdencCmd3Par0[5];
+    cmd.DW1_2.VDENC_CMD3_DW2_BIT16 = params.vdencCmd3Par0[6];
+    cmd.DW1_2.VDENC_CMD3_DW2_BIT24 = params.vdencCmd3Par0[7];
+
     for (auto i = 0; i < 12; i++)
     {
         cmd.VDENC_CMD3_DW3_5[i] = params.vdencCmd3Par1[i];
@@ -1501,15 +1523,6 @@ protected:
     }
 
 #define DO_FIELDS()                                                 \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW1_BIT0,  params.vdencCmd3Par0[0]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW1_BIT8,  params.vdencCmd3Par0[1]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW1_BIT16, params.vdencCmd3Par0[2]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW1_BIT24, params.vdencCmd3Par0[3]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW2_BIT0,  params.vdencCmd3Par0[4]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW2_BIT8,  params.vdencCmd3Par0[5]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW2_BIT16, params.vdencCmd3Par0[6]); \
-    DO_FIELD(DW1_2, VDENC_CMD3_DW2_BIT24, params.vdencCmd3Par0[7]); \
-                                                                    \
     DO_FIELD(DW10, VDENC_CMD3_DW10_BIT16, params.vdencCmd3Par3);    \
     DO_FIELD(DW10, VDENC_CMD3_DW10_BIT24, params.vdencCmd3Par4);    \
                                                                     \

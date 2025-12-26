@@ -777,7 +777,6 @@ MOS_STATUS HevcBasicFeature::GetSurfaceMmcInfo(PMOS_SURFACE surface, MOS_MEMCOMP
 
     ENCODE_CHK_NULL_RETURN(surface);
 
-#ifdef _MMC_SUPPORTED
     ENCODE_CHK_NULL_RETURN(m_mmcState);
     if (m_mmcState->IsMmcEnabled())
     {
@@ -788,13 +787,13 @@ MOS_STATUS HevcBasicFeature::GetSurfaceMmcInfo(PMOS_SURFACE surface, MOS_MEMCOMP
     {
         mmcState = MOS_MEMCOMP_DISABLED;
     }
-#endif
 
     return MOS_STATUS_SUCCESS;
 }
 
 MHW_SETPAR_DECL_SRC(VDENC_PIPE_MODE_SELECT, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.frameStatisticsStreamOut              = m_hevcPicParams->StatusReportEnable.fields.FrameStats;
     params.bitDepthMinus8                        = m_hevcSeqParams->bit_depth_luma_minus8;
     params.chromaType                            = m_hevcSeqParams->chroma_format_idc;
@@ -821,6 +820,7 @@ MHW_SETPAR_DECL_SRC(VDENC_PIPE_MODE_SELECT, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(VDENC_SRC_SURFACE_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.pitch                = m_rawSurfaceToPak->dwPitch;
     params.tileType             = m_rawSurfaceToPak->TileType;
     params.tileModeGmm          = m_rawSurfaceToPak->TileModeGMM;
@@ -866,6 +866,7 @@ static inline uint32_t GetHwTileType(MOS_TILE_TYPE tileType, MOS_TILE_MODE_GMM t
 
 MHW_SETPAR_DECL_SRC(VDENC_REF_SURFACE_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.pitch       = m_reconSurface.dwPitch;
     params.tileType    = m_reconSurface.TileType;
     params.tileModeGmm = m_reconSurface.TileModeGMM;
@@ -901,6 +902,7 @@ MHW_SETPAR_DECL_SRC(VDENC_REF_SURFACE_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(VDENC_DS_REF_SURFACE_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.pitchStage1       = m_8xDSSurface->dwPitch;
     params.tileTypeStage1    = m_8xDSSurface->TileType;
     params.tileModeGmmStage1 = m_8xDSSurface->TileModeGMM;
@@ -924,7 +926,7 @@ MHW_SETPAR_DECL_SRC(VDENC_DS_REF_SURFACE_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(VDENC_PIPE_BUF_ADDR_STATE, HevcBasicFeature)
 {
-#ifdef _MMC_SUPPORTED
+    ENCODE_FUNC_CALL();
     ENCODE_CHK_NULL_RETURN(m_mmcState);   
     if (m_mmcState->IsMmcEnabled())
     {
@@ -938,7 +940,6 @@ MHW_SETPAR_DECL_SRC(VDENC_PIPE_BUF_ADDR_STATE, HevcBasicFeature)
         params.mmcStateRaw          = MOS_MEMCOMP_DISABLED;
         params.compressionFormatRaw = 0;
     }
-#endif
 
     params.surfaceRaw               = m_rawSurfaceToPak;
     params.surfaceDsStage1          = m_8xDSSurface;
@@ -983,6 +984,7 @@ MHW_SETPAR_DECL_SRC(VDENC_PIPE_BUF_ADDR_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(VDENC_CMD1, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     auto settings = static_cast<HevcVdencFeatureSettings *>(m_constSettings);
     ENCODE_CHK_NULL_RETURN(settings);
 
@@ -996,6 +998,7 @@ MHW_SETPAR_DECL_SRC(VDENC_CMD1, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(VDENC_CMD2, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.width  = (m_hevcSeqParams->wFrameWidthInMinCbMinus1 + 1) << (m_hevcSeqParams->log2_min_coding_block_size_minus3 + 3);
     params.height = (m_hevcSeqParams->wFrameHeightInMinCbMinus1 + 1) << (m_hevcSeqParams->log2_min_coding_block_size_minus3 + 3);
 
@@ -1160,6 +1163,7 @@ MHW_SETPAR_DECL_SRC(VDENC_CMD2, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(HCP_PIC_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     params.framewidthinmincbminus1         = m_hevcSeqParams->wFrameWidthInMinCbMinus1;
     params.frameheightinmincbminus1        = m_hevcSeqParams->wFrameHeightInMinCbMinus1;
     params.mincusize                       = m_hevcSeqParams->log2_min_coding_block_size_minus3;
@@ -1210,6 +1214,7 @@ MHW_SETPAR_DECL_SRC(HCP_PIC_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(HEVC_VP9_RDOQ_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     uint8_t bitDepthLumaMinus8   = m_hevcSeqParams->bit_depth_luma_minus8;
     uint8_t bitDepthChromaMinus8 = m_hevcSeqParams->bit_depth_chroma_minus8;
     uint8_t codingType           = m_hevcPicParams->CodingType;
@@ -1349,6 +1354,7 @@ MHW_SETPAR_DECL_SRC(HEVC_VP9_RDOQ_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(HCP_SURFACE_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     PMOS_SURFACE psSurface            = nullptr;
     uint8_t      ucBitDepthLumaMinus8 = 0;
     uint8_t      chromaType           = 0;
@@ -1370,13 +1376,12 @@ MHW_SETPAR_DECL_SRC(HCP_SURFACE_STATE, HevcBasicFeature)
         reconSurfHeight = m_rawSurfaceToPak->dwHeight;
         break;
     }
-#ifdef _MMC_SUPPORTED
+
     GetSurfaceMmcInfo(psSurface, params.mmcState, params.dwCompressionFormat);
     if (params.surfaceStateId == CODECHAL_HCP_REF_SURFACE_ID)
     {
         m_ref.MHW_SETPAR_F(HCP_SURFACE_STATE)(params);
     }
-#endif
 
     ENCODE_CHK_NULL_RETURN(psSurface);
     params.surfacePitchMinus1 = psSurface->dwPitch - 1;
@@ -1471,7 +1476,7 @@ MHW_SETPAR_DECL_SRC(HCP_SURFACE_STATE, HevcBasicFeature)
     else if (params.surfaceFormat == hcp::SURFACE_FORMAT::SURFACE_FORMAT_Y216VARIANT ||
              params.surfaceFormat == hcp::SURFACE_FORMAT::SURFACE_FORMAT_YUY2VARIANT)
     {
-        params.yOffsetForUCbInPixel = params.yOffsetForVCr = (uint16_t)reconSurfHeight;
+        params.yOffsetForUCbInPixel = params.yOffsetForVCr = MOS_ALIGN_CEIL((uint16_t)reconSurfHeight, 8);
     }
 
     return MOS_STATUS_SUCCESS;
@@ -1479,6 +1484,7 @@ MHW_SETPAR_DECL_SRC(HCP_SURFACE_STATE, HevcBasicFeature)
 
 MHW_SETPAR_DECL_SRC(HCP_SLICE_STATE, HevcBasicFeature)
 {
+    ENCODE_FUNC_CALL();
     ENCODE_CHK_NULL_RETURN(m_hevcSliceParams);
     PCODEC_HEVC_ENCODE_SLICE_PARAMS pEncodeHevcSliceParams = (CODEC_HEVC_ENCODE_SLICE_PARAMS *) &m_hevcSliceParams[m_curNumSlices];
     uint32_t ctbSize    = 1 << (m_hevcSeqParams->log2_max_coding_block_size_minus3 + 3);

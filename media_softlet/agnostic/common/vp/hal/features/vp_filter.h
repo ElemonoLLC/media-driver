@@ -187,7 +187,7 @@ struct _SFC_CSC_PARAMS
 struct _SFC_ROT_MIR_PARAMS
 {
     VPHAL_ROTATION                  rotationMode;                               // Rotation mode -- 0, 90, 180 or 270
-    uint32_t                        mirrorType;                               // Mirror Type -- vert/horiz
+    int32_t                         mirrorType;                                 // Mirror Type -- vert/horiz
     bool                            bMirrorEnable;                              // Mirror mode -- enable/disable
 };
 
@@ -497,6 +497,35 @@ struct _RENDER_OCL_FC_PARAMS
 };
 using RENDER_OCL_FC_PARAMS  = _RENDER_OCL_FC_PARAMS;
 using PRENDER_OCL_FC_PARAMS = RENDER_OCL_FC_PARAMS *;
+
+struct AI_KERNEL_CONFIG
+{
+    VPHAL_PERFTAG perfTag     = VPHAL_NONE;
+    FeatureType   featureType = FeatureTypeInvalid;
+};
+
+struct AI_KERNEL_PARAM
+{
+    KERNEL_ARGS                  kernelArgs;
+    std::string                  kernelName;
+    uint32_t                     threadWidth;
+    uint32_t                     threadHeight;
+    uint32_t                     threadDepth;
+    uint32_t                     localWidth;
+    uint32_t                     localHeight;
+    KERNEL_ARG_INDEX_SURFACE_MAP kernelStatefulSurfaces;
+    void                         Init();
+};
+
+using AI_KERNEL_PARAMS = std::vector<AI_KERNEL_PARAM>;
+struct _RENDER_AI_PARAMS
+{
+    AI_KERNEL_PARAMS ai_kernelParams = {};
+    AI_KERNEL_CONFIG ai_kernelConfig = {};
+    void             Init();
+};
+using RENDER_AI_PARAMS  = _RENDER_AI_PARAMS;
+using PRENDER_AI_PARAMS = RENDER_AI_PARAMS *;
 
 struct _RENDER_HDR_PARAMS
 {

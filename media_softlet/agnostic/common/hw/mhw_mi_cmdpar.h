@@ -180,13 +180,18 @@ namespace mi
         bool                        bPollingWaitMode   = false;
         uint32_t                    dwCompareOperation = 0;
         uint32_t                    dwSemaphoreData    = 0;
+        uint32_t                    waitTokenNumber    = 0;
         bool                        b64bCompareEnableWithGPR = 0;
         MHW_COMMON_MI_SEMAPHORE_COMPARE_OPERATION CompareOperation = {};
     };
 
     struct _MHW_PAR_T(MI_SEMAPHORE_SIGNAL)
     {
-        bool                        b64bSignalingEnable = 0;            //Semaphore Wait/Signal with 64 bit Token value
+        bool                        b64bSignalingEnable         = 0;            //Semaphore Wait/Signal with 64 bit Token value
+        uint32_t                    dwLength                    = 0;
+        uint32_t                    swSemaphoreTokenInfo        = 0;
+        uint32_t                    semaphoreTokenLowerDword    = 0;
+        uint32_t                    semaphoreTokenUpperDword    = 0;
     };
 
     struct _MHW_PAR_T(PIPE_CONTROL)
@@ -393,5 +398,9 @@ namespace mi
     };
 }  // namespace mi
 }  // namespace mhw
+
+#ifdef _MEDIA_RESERVED
+#include "mhw_mi_cmdpar_ext.h"
+#endif
 
 #endif  // __MHW_MI_CMDPAR_H__

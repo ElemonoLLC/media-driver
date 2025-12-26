@@ -175,6 +175,14 @@ MOS_STATUS MediaCopyBaseState::CapabilityCheck(
         return MOS_STATUS_INVALID_PARAMETER; // unsupport copy on each hw engine.
     }
 
+    MEDIA_WA_TABLE *pWaTable = m_osInterface->pfnGetWaTable(m_osInterface);
+    if ((format == Format_Y210 || format == Format_Y216) &&
+        MEDIA_IS_WA(pWaTable, Wa_16024792527_OptionB))
+    {
+        caps.engineRender = false;
+        m_bRenderFallbackToBlt = true;
+    }
+
     return MOS_STATUS_SUCCESS;
 }
 
@@ -289,6 +297,7 @@ uint32_t GetMinRequiredSurfaceSizeInBytes(uint32_t pitch, uint32_t height, MOS_F
     case Format_IRW1:
     case Format_IRW2:
     case Format_IRW3:
+    case Format_R16UN:
         nBytes = pitch * height;
         break;
     default:
@@ -563,6 +572,10 @@ MOS_STATUS MediaCopyBaseState::TaskDispatch(MCPY_STATE_PARAMS mcpySrc, MCPY_STAT
     if (m_bRegReport)
     {
         std::string copyEngine = mcpyEngine ?(mcpyEngine == MCPY_ENGINE_BLT?"BLT":"Render"):"VeBox";
+        if (m_bRenderFallbackToBlt)
+        {
+            copyEngine = "Render";
+        }
         MediaUserSettingSharedPtr userSettingPtr = m_osInterface->pfnGetUserSettingInstance(m_osInterface);
         ReportUserSettingForDebug(
             userSettingPtr,

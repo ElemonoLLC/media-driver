@@ -113,10 +113,8 @@ namespace decode
         m_hevcRextPicParams  = m_hevcBasicFeature->m_hevcRextPicParams;
         m_hevcSccPicParams   = m_hevcBasicFeature->m_hevcSccPicParams;
 
-#ifdef _MMC_SUPPORTED
         m_mmcState = m_hevcPipeline->GetMmcState();
         DECODE_CHK_NULL(m_mmcState);
-#endif
 
         DECODE_CHK_STATUS(SetRowstoreCachingOffsets());
         DECODE_CHK_STATUS(AllocateVariableResources());
@@ -472,7 +470,6 @@ namespace decode
             params.defaultAlphaValue = 0xffff;
         }
 
-#ifdef _MMC_SUPPORTED
         if (m_curHcpSurfStateId == CODECHAL_HCP_DECODED_SURFACE_ID)
         {
             DECODE_CHK_STATUS(m_mmcState->SetSurfaceMmcState(psSurface));
@@ -535,7 +532,6 @@ namespace decode
                 }
             }
         }
-#endif
 
         return MOS_STATUS_SUCCESS;
     }
@@ -654,9 +650,7 @@ namespace decode
         PMOS_SURFACE destSurface   = &(m_hevcBasicFeature->m_destSurface);
         params.psPreDeblockSurface = destSurface;
 
-#ifdef _MMC_SUPPORTED
         DECODE_CHK_STATUS(m_mmcState->GetSurfaceMmcState(destSurface, &params.PreDeblockSurfMmcState));
-#endif
 
         params.presMfdDeblockingFilterRowStoreScratchBuffer    = &(m_resMfdDeblockingFilterRowStoreScratchBuffer->OsResource);
         params.presDeblockingFilterTileRowStoreScratchBuffer   = &(m_resDeblockingFilterTileRowStoreScratchBuffer->OsResource);
@@ -892,7 +886,16 @@ namespace decode
         params.bitDepthChromaMinus8 = m_hevcPicParams->bit_depth_chroma_minus8;
         params.bitDepthLumaMinus8   = m_hevcPicParams->bit_depth_luma_minus8;
 
+#if (_DEBUG || _RELEASE_INTERNAL)
+        bool crcOutputEnable = false;
+        if (m_hevcPipeline != nullptr)
+        {
+            crcOutputEnable = m_hevcPipeline->GetCRCOutputEnable();
+        }
+        params.requestCRC = m_hevcPicParams->RequestCRC || crcOutputEnable;
+#else
         params.requestCRC = m_hevcPicParams->RequestCRC;
+#endif
 
         // Force to false due to definition in xe_lpm_plus
         params.sseEnable                    = false;
