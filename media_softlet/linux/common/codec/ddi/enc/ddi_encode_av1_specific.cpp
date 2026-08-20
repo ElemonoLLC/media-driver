@@ -958,8 +958,19 @@ VAStatus DdiEncodeAV1::ParseMiscParamRC(void *data)
     }
     else if (VA_RC_ICQ == m_encodeCtx->uiRCMethod)
     {   
+        // For ICQ with bitrate limit, use CQL with MaxBitRate constraint
         seqParams->RateControlMethod = RATECONTROL_CQL;
         seqParams->ICQQualityFactor = vaEncMiscParamRC->quality_factor;
+        
+        // Set MaxBitRate from bits_per_second if provided (for ICQ bitrate limiting)
+        if (bitRate > 0)
+        {
+            seqParams->MaxBitRate = bitRate;
+            // For ICQ, TargetBitRate can be set to MaxBitRate or a lower value
+            seqParams->TargetBitRate[temporalId] = bitRate;
+            seqParams->MinBitRate = 0; // No minimum for ICQ
+        }
+        
         if (savedQualityFactor != seqParams->ICQQualityFactor)
         {
             if (savedQualityFactor != 0)
@@ -968,6 +979,13 @@ VAStatus DdiEncodeAV1::ParseMiscParamRC(void *data)
             }
             savedQualityFactor = seqParams->ICQQualityFactor;
         }
+        
+        // Track MaxBitRate changes for reset detection
+        if ((savedMaxBitRate[temporalId] != 0) && (savedMaxBitRate[temporalId] != bitRate))
+        {
+            seqParams->SeqFlags.fields.ResetBRC |= 0x01;
+        }
+        savedMaxBitRate[temporalId] = bitRate;
     }
 
     /* the reset flag in RC will be considered. */
